@@ -15,6 +15,8 @@
  */
 package com.example.android.pets;
 
+import android.content.ContentValues;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
@@ -26,32 +28,48 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.Toast;
+
+import com.example.android.pets.data.PetContract.PetEntry;
+import com.example.android.pets.data.PetDbHelper;
 
 /**
  * Allows user to create a new pet or edit an existing one.
  */
 public class EditorActivity extends AppCompatActivity {
 
-    /** EditText field to enter the pet's name */
+    /**
+     * EditText field to enter the pet's name
+     */
     private EditText mNameEditText;
 
-    /** EditText field to enter the pet's breed */
+    /**
+     * EditText field to enter the pet's breed
+     */
     private EditText mBreedEditText;
 
-    /** EditText field to enter the pet's weight */
+    /**
+     * EditText field to enter the pet's weight
+     */
     private EditText mWeightEditText;
 
-    /** EditText field to enter the pet's gender */
+    /**
+     * EditText field to enter the pet's gender
+     */
     private Spinner mGenderSpinner;
 
     /**
-     * Gender of the pet. The possible values are:
-     * 0 for unknown gender, 1 for male, 2 for female.
+     * Gender of the pet. The possible valid values are in the PetContract.java file:
+     * {@link PetEntry#GENDER_UNKNOWN}, {@link PetEntry#GENDER_MALE}, or
+     * {@link PetEntry#GENDER_FEMALE}.
      */
-    private int mGender = 0;
+    private int mGender = PetEntry.GENDER_UNKNOWN;
+
+    PetDbHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_editor);
 
@@ -62,12 +80,16 @@ public class EditorActivity extends AppCompatActivity {
         mGenderSpinner = (Spinner) findViewById(R.id.spinner_gender);
 
         setupSpinner();
+
+        dbHelper = new PetDbHelper(this);
+
     }
 
     /**
      * Setup the dropdown spinner that allows the user to select the gender of the pet.
      */
     private void setupSpinner() {
+
         // Create adapter for spinner. The list options are from the String array it will use
         // the spinner will use the default layout
         ArrayAdapter genderSpinnerAdapter = ArrayAdapter.createFromResource(this,
@@ -81,54 +103,108 @@ public class EditorActivity extends AppCompatActivity {
 
         // Set the integer mSelected to the constant values
         mGenderSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+
                 String selection = (String) parent.getItemAtPosition(position);
                 if (!TextUtils.isEmpty(selection)) {
+
                     if (selection.equals(getString(R.string.gender_male))) {
-                        mGender = 1; // Male
+
+                        mGender = PetEntry.GENDER_MALE; // Male
+
                     } else if (selection.equals(getString(R.string.gender_female))) {
-                        mGender = 2; // Female
+
+                        mGender = PetEntry.GENDER_FEMALE; // Female
+
                     } else {
-                        mGender = 0; // Unknown
+
+                        mGender = PetEntry.GENDER_UNKNOWN; // Unknown
+
                     }
+
                 }
+
             }
 
             // Because AdapterView is an abstract class, onNothingSelected must be defined
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                mGender = 0; // Unknown
+
+                mGender = PetEntry.GENDER_UNKNOWN; // Unknown
+
             }
+
         });
+
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+
         // Inflate the menu options from the res/menu/menu_editor.xml file.
         // This adds menu items to the app bar.
         getMenuInflater().inflate(R.menu.menu_editor, menu);
         return true;
+
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+
         // User clicked on a menu option in the app bar overflow menu
         switch (item.getItemId()) {
+
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                // Do nothing for now
-                return true;
-            // Respond to a click on the "Delete" menu option
+                String name = mNameEditText.getText().toString();
+                String breed = mBreedEditText.getText().toString();
+                String weight = mWeightEditText.getText().toString();
+
+                long newRow = addPet(name, breed, mGender, weight);
+                finish();
+
+                if (newRow != -1) {
+
+                    Toast.makeText(this, "Pet saved with id: " + newRow, Toast.LENGTH_SHORT).show();
+                    return true;
+
+                } else {
+
+                    Toast.makeText(this, "Error with saving pet", Toast.LENGTH_SHORT).show();
+                    return false;
+
+                }
+
+                // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
                 // Do nothing for now
                 return true;
+
             // Respond to a click on the "Up" arrow button in the app bar
             case android.R.id.home:
                 // Navigate back to parent activity (CatalogActivity)
                 NavUtils.navigateUpFromSameTask(this);
                 return true;
+
         }
         return super.onOptionsItemSelected(item);
+
     }
+
+    public long addPet(String name, String breed, int mGender, String weight) {
+
+        SQLiteDatabase shelter = dbHelper.getWritableDatabase();
+
+        ContentValues pet = new ContentValues();
+        pet.put(PetEntry.COLUMN_PET_NAME, name);
+        pet.put(PetEntry.COLUMN_PET_BREED, breed);
+        pet.put(PetEntry.COLUMN_PET_GENDER, mGender);
+        pet.put(PetEntry.COLUMN_PET_WEIGHT, weight);
+
+        return shelter.insert(PetEntry.TABLE_NAME, null, pet);
+
+    }
+
 }
