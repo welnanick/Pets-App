@@ -16,7 +16,7 @@
 package com.example.android.pets;
 
 import android.content.ContentValues;
-import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
@@ -162,22 +162,11 @@ public class EditorActivity extends AppCompatActivity {
                 String breed = mBreedEditText.getText().toString();
                 String weight = mWeightEditText.getText().toString();
 
-                long newRow = addPet(name, breed, mGender, weight);
+                addPet(name, breed, mGender, weight);
                 finish();
+                return true;
 
-                if (newRow != -1) {
-
-                    Toast.makeText(this, "Pet saved with id: " + newRow, Toast.LENGTH_SHORT).show();
-                    return true;
-
-                } else {
-
-                    Toast.makeText(this, "Error with saving pet", Toast.LENGTH_SHORT).show();
-                    return false;
-
-                }
-
-                // Respond to a click on the "Delete" menu option
+            // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
                 // Do nothing for now
                 return true;
@@ -193,17 +182,33 @@ public class EditorActivity extends AppCompatActivity {
 
     }
 
-    public long addPet(String name, String breed, int mGender, String weight) {
+    public void addPet(String name, String breed, int mGender, String weight) {
 
-        SQLiteDatabase shelter = dbHelper.getWritableDatabase();
+        // Create a ContentValues object where column names are the keys,
+        // and pet attributes from the editor are the values.
+        ContentValues values = new ContentValues();
+        values.put(PetEntry.COLUMN_PET_NAME, name);
+        values.put(PetEntry.COLUMN_PET_BREED, breed);
+        values.put(PetEntry.COLUMN_PET_GENDER, mGender);
+        values.put(PetEntry.COLUMN_PET_WEIGHT, weight);
 
-        ContentValues pet = new ContentValues();
-        pet.put(PetEntry.COLUMN_PET_NAME, name);
-        pet.put(PetEntry.COLUMN_PET_BREED, breed);
-        pet.put(PetEntry.COLUMN_PET_GENDER, mGender);
-        pet.put(PetEntry.COLUMN_PET_WEIGHT, weight);
+        // Insert a new pet into the provider, returning the content URI for the new pet.
+        Uri newUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
 
-        return shelter.insert(PetEntry.TABLE_NAME, null, pet);
+        // Show a toast message depending on whether or not the insertion was successful
+        if (newUri == null) {
+
+            // If the new content URI is null, then there was an error with insertion.
+            Toast.makeText(this, getString(R.string.editor_insert_pet_failed),
+                    Toast.LENGTH_SHORT).show();
+
+        } else {
+
+            // Otherwise, the insertion was successful and we can display a toast.
+            Toast.makeText(this, getString(R.string.editor_insert_pet_successful),
+                    Toast.LENGTH_SHORT).show();
+
+        }
 
     }
 
