@@ -12,10 +12,10 @@ public final class PetContract {
 
 
     private PetContract() {
+
     }
 
     public static abstract class PetEntry implements BaseColumns {
-
 
         /**
          * The MIME type of the {@link #CONTENT_URI} for a list of pets.
